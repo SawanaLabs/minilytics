@@ -185,7 +185,7 @@ function Totals({ visitors, revenue }: { visitors?: number; revenue?: { currency
   );
 }
 
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'CAD', 'AUD', 'SGD', 'JPY', 'BRL'];
+const CURRENCIES = ['USD', 'CNY', 'EUR', 'GBP', 'INR', 'CAD', 'AUD', 'SGD', 'JPY', 'BRL'];
 
 function AddSite({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [domain, setDomain] = useState('');
