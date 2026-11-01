@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { isHosted } from './auth';
-import { forgetAllSites, type AppEnv, type Env } from './env';
+import { type AppEnv, type Env } from './env';
 import { verifyStandardWebhook } from './lib/crypto';
 
 const DAY = 86_400_000;
@@ -141,7 +141,6 @@ export async function billingWebhook(c: Context<AppEnv>) {
       await c.env.DB.prepare(`UPDATE users SET plan_status = 'refunded', plan_until = ? WHERE dodo_payment_id = ?`)
         .bind(Date.now(), d.payment_id)
         .run();
-      forgetAllSites();
     }
     return c.json({ ok: true });
   }
@@ -212,7 +211,6 @@ export async function billingWebhook(c: Context<AppEnv>) {
   }
   if (sql) {
     await c.env.DB.prepare(sql).bind(...params).run();
-    forgetAllSites();
   }
   return c.json({ ok: true });
 }

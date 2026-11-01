@@ -51,28 +51,13 @@ export type SiteWithOwner = Site & { owner_email?: string | null; owner_plan_sta
 
 export type AppEnv = { Bindings: Env; Variables: { site: Site; user: import('./auth').User } };
 
-const siteCache = new Map<string, { site: SiteWithOwner | null; at: number }>();
-
-/** Sites change rarely; cache them per isolate so ingestion costs one fewer read per event. */
+/** Read current settings: updates can be handled by a different Worker isolate. */
 export async function getSite(db: D1Database, id: string): Promise<SiteWithOwner | null> {
-  const hit = siteCache.get(id);
-  if (hit && Date.now() - hit.at < 60_000) return hit.site;
-  const site = await db
+  return db
     .prepare(
       `SELECT s.*, u.email AS owner_email, u.plan_status AS owner_plan_status, u.plan_until AS owner_plan_until
        FROM sites s LEFT JOIN users u ON u.id = s.owner_id WHERE s.id = ?`,
     )
     .bind(id)
     .first<SiteWithOwner>();
-  siteCache.set(id, { site, at: Date.now() });
-  return site;
-}
-
-export function forgetSite(id: string) {
-  siteCache.delete(id);
-}
-
-/** After a plan changes, owners' sites must re-check whether they may record events. */
-export function forgetAllSites() {
-  siteCache.clear();
 }

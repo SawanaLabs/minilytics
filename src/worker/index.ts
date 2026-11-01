@@ -1,7 +1,7 @@
 import { Hono, type Context, type Next } from 'hono';
 import { cors } from 'hono/cors';
 import { handleEvent } from './collect';
-import { forgetSite, type AppEnv, type Site } from './env';
+import { type AppEnv, type Site } from './env';
 import { clearSession, currentUser, googleCallback, googleStart, isHosted, requireUser, setSession, siteAccessSql } from './auth';
 import { billingWebhook, checkout, planInfo } from './billing';
 import { passwordsMatch, randomId } from './lib/crypto';
@@ -205,7 +205,6 @@ app.patch('/api/sites/:id', async (c) => {
       site.id,
     )
     .run();
-  forgetSite(site.id);
   return c.json(publicSite(next));
 });
 
@@ -222,7 +221,6 @@ app.delete('/api/sites/:id', async (c) => {
       c.env.DB.prepare(`DELETE FROM ${t} WHERE site_id = ?`).bind(id),
     ).concat(c.env.DB.prepare('DELETE FROM sites WHERE id = ?').bind(id)),
   );
-  forgetSite(id);
   return c.json({ ok: true });
 });
 

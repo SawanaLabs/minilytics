@@ -75,7 +75,8 @@ const pay = {
     metadata: { ml_visitor_id: vid, ml_session_id: sid },
   },
 };
-assert((await dodo(pay, false)).status === 401, 'bad webhook signature rejected');
+const invalidSignature = await dodo(pay, false);
+assert(invalidSignature.status === 401, `bad webhook signature rejected (got ${invalidSignature.status}: ${await invalidSignature.text()})`);
 assert((await dodo(pay)).status === 200, 'webhook accepted');
 assert((await dodo(pay)).status === 200, 'duplicate webhook is fine');
 // Renewal with no metadata gets linked through the customer id
