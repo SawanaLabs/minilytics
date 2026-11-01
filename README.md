@@ -1,5 +1,7 @@
 # Minilytics
 
+SawanaLabs fork for a private multi-site dashboard. See [deployment notes](docs/deployment.md) for our Cloudflare setup and current integration scope. The upstream project documentation follows.
+
 Revenue-first web analytics for your own websites, inspired by DataFast. It shows where visitors came from (which
 tweet, article, Google page or AI assistant), what they did, and **which source made you money**. It runs on
 Cloudflare's free plan.
