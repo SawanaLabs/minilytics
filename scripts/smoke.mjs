@@ -187,6 +187,42 @@ for (const g of ['hour', 'day', 'week', 'month']) {
 const rt = (await call(`/api/sites/${site.id}/realtime`)).body;
 assert(rt.visitors.some((v) => v.visitor_id === vid) && rt.feed.some((f) => f.type === 'payment'), `live view: ${rt.visitors.length} online, ${rt.feed.length} recent events`);
 
+// Stripe uses the same deployed settings and income queries as Dodo.
+const stripeSecret = 'whsec_' + crypto.randomBytes(24).toString('hex');
+await call(`/api/sites/${site.id}`, { method: 'PATCH', body: JSON.stringify({ stripe_webhook_secret: stripeSecret }) });
+async function stripe(type, object, sign = true) {
+  const body = JSON.stringify({ type, data: { object } });
+  const ts = Math.floor(Date.now() / 1000).toString();
+  const sig = crypto.createHmac('sha256', stripeSecret).update(`${ts}.${body}`).digest('hex');
+  return fetch(`${BASE}/api/webhooks/stripe/${site.id}`, {
+    method: 'POST',
+    headers: { 'stripe-signature': `t=${ts},v1=${sign ? sig : 'bad'}` },
+    body,
+  });
+}
+const revenue = async () => (await call(`/api/sites/${site.id}/overview?period=today`)).body.current.revenue;
+const beforeStripe = await revenue();
+const checkout = {
+  id: 'cs_smoke_stripe', mode: 'payment', payment_status: 'paid', payment_intent: 'pi_smoke_stripe',
+  amount_total: 1000, currency: 'usd', customer: 'cus_smoke_stripe',
+  metadata: { ml_visitor_id: vid, ml_session_id: sid },
+};
+assert((await stripe('checkout.session.completed', checkout, false)).status === 401, 'invalid Stripe signature rejected');
+assert((await stripe('checkout.session.completed', checkout)).status === 200, 'Stripe checkout accepted');
+await stripe('checkout.session.completed', checkout);
+assert(await revenue() === beforeStripe + 1000, 'duplicate Stripe checkout counted once');
+const stripeRefund = { id: 'ch_smoke_stripe', payment_intent: checkout.payment_intent, amount_refunded: 400, currency: 'usd', customer: checkout.customer };
+await stripe('charge.refunded', stripeRefund);
+await stripe('charge.refunded', stripeRefund);
+assert(await revenue() === beforeStripe + 600, 'Stripe partial refund counted once');
+const subscription = { ...checkout, id: 'cs_smoke_subscription', mode: 'subscription', invoice: 'in_smoke_first', subscription: 'sub_smoke_stripe' };
+await stripe('checkout.session.completed', subscription);
+const invoice = { id: subscription.invoice, subscription: subscription.subscription, customer: checkout.customer, amount_paid: 1000, currency: 'usd', billing_reason: 'subscription_create' };
+await stripe('invoice.paid', invoice);
+assert(await revenue() === beforeStripe + 1600, 'Stripe first subscription invoice counted once');
+await stripe('invoice.paid', { ...invoice, id: 'in_smoke_renewal', billing_reason: 'subscription_cycle' });
+assert(await revenue() === beforeStripe + 2600, 'Stripe subscription renewal counted');
+
 await call(`/api/sites/${site.id}`, { method: 'DELETE' });
 assert((await call(`/api/sites/${site.id}`)).status === 404, 'site deleted');
 console.log('\nAll smoke tests passed');
