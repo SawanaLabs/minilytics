@@ -1,5 +1,7 @@
 # Sawana deployment
 
+Status as of 2026-11-01: evaluation stopped because the selected product does not meet the existing-data aggregation requirement. Keep the fork and deployment as reference. Do not install its tracking script on business websites as part of the current dashboard task. A new solution is being evaluated for GA4, Clarity, Stripe, Waffo, Google Search Console, and Bing Webmaster Tools; business databases remain outside scope.
+
 This fork runs as a single-user dashboard on Sawana's Cloudflare account.
 
 - Repository: https://github.com/SawanaLabs/minilytics
